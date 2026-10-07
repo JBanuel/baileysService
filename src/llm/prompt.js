@@ -1,18 +1,4 @@
-const TIPOS_TRABAJO = [
-  'Venta ambulante',
-  'Limpieza de parabrisas',
-  'Mendicidad',
-  'Carga y descarga',
-  'Trabajo en comercio',
-  'Campo',
-  'Construcción',
-  'Trabajo doméstico',
-  'Recolección de residuos',
-  'Otra actividad',
-  'No sé',
-]
-
-const RANGOS_EDAD = ['Menos de 5 años', '5 a 7 años', '8 a 10 años', '11 a 13 años', '14 a 17 años', 'No sé']
+import { TIPOS_TRABAJO, RANGOS_EDAD } from './catalogos.js'
 
 const CANALIZACION = `
 - Emergencia o riesgo inmediato para un niño, niña o adolescente: llamar al 911.
