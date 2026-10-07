@@ -3,6 +3,7 @@
   "dependencies": {
     "@hapi/boom": "^10.0.1",
     "@whiskeysockets/baileys": "^7.0.0-rc14",
+    "ollama": "^0.6.4",
     "pino": "^10.4.0",
     "qrcode-terminal": "^0.12.0"
   }
