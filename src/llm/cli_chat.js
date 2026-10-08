@@ -10,7 +10,7 @@ const messages = [
 ]
 
 while (true) {
-    const text = (await rl.question('tú> ')).trim()
+    const text = (await rl.question('you> ')).trim()
     if (!text) continue
 
     messages.push({ role: 'user', content: text })

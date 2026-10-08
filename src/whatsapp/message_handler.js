@@ -22,8 +22,8 @@ function extractContent(msg) {
             location: {
                 lat: location.degreesLatitude,
                 lng: location.degreesLongitude,
-                nombre: location.name || undefined,
-                direccion: location.address || undefined,
+                name: location.name || undefined,
+                address: location.address || undefined,
             },
         }
     }
