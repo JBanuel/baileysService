@@ -8,6 +8,8 @@ const FREE_TEXT_FIELDS = ['description', 'more_details']
 
 const REFUSAL = /^(no|nada|nada más|ninguno|ya|eso es todo|es todo)(,?\s*gracias)?[.!\s]*$/i
 
+export const REVIEW_STEPS = ['summary', 'correction']
+
 export function emptyDraft() {
     return {
         description: null,
@@ -24,6 +26,7 @@ export function emptyDraft() {
         approximation_asked: [],
         details_asked: false,
         defaults_used: [],
+        confirmed: false,
     }
 }
 
@@ -45,20 +48,27 @@ export function setLocation(draft, { lat, lng }) {
     return { ...draft, latitude: lat, longitude: lng }
 }
 
+export function bringsReportData(data) {
+    return EXTRACTED_FIELDS.some((field) => data[field] !== null && data[field] !== undefined) || Boolean(data.hour ?? data.period)
+}
+
 export function mergeData(draft, data, message) {
     const next = { ...draft }
+    const asked = draft.last_asked_field
+    const reviewing = REVIEW_STEPS.includes(asked)
+    const correcting = reviewing && data.intent === 'correct'
+
+    const canWrite = (field, askedAs = [field]) => draft[field] === null || askedAs.includes(asked) || correcting
 
     for (const field of EXTRACTED_FIELDS) {
-        if (data[field] !== null && data[field] !== undefined) next[field] = data[field]
+        if (data[field] !== null && data[field] !== undefined && canWrite(field)) next[field] = data[field]
     }
 
-    mergeTime(next, draft, data)
+    if (canWrite('sighting_time', ['sighting_time', 'time_period'])) mergeTime(next, draft, data)
 
-    const broughtData =
-        EXTRACTED_FIELDS.some((field) => data[field] !== null && data[field] !== undefined) ||
-        Boolean(data.hour ?? data.period)
-    const answeredStory = FREE_TEXT_FIELDS.includes(draft.last_asked_field) && !REFUSAL.test(message.trim())
-    if (broughtData || answeredStory) next.description = next.description ? `${next.description}\n${message}` : message
+    const answeredStory = FREE_TEXT_FIELDS.includes(asked) && !REFUSAL.test(message.trim())
+    const addsToStory = reviewing && data.intent === 'add'
+    if ((!reviewing && (bringsReportData(data) || answeredStory)) || addsToStory) next.description = next.description ? `${next.description}\n${message}` : message
 
     return next
 }

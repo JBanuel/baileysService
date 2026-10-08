@@ -1,6 +1,5 @@
 export const PERIODS = ['morning', 'noon', 'afternoon', 'night', 'early_morning']
 
-// Order matters: the first keyword found in the text wins
 const PERIOD_KEYWORDS = [
     ['early_morning', 'madrugada'],
     ['noon', 'mediod'],
@@ -15,7 +14,6 @@ export function periodFromText(text) {
     return PERIOD_KEYWORDS.find(([, keyword]) => t.includes(keyword))?.[0] ?? null
 }
 
-// True if the message itself mentions that part of the day (the model may rephrase "en la tarde" as "de la tarde")
 export function mentionsPeriod(message, period) {
     const keyword = PERIOD_KEYWORDS.find(([name]) => name === period)?.[1]
     return Boolean(keyword) && message.toLowerCase().includes(keyword)

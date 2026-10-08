@@ -1,3 +1,4 @@
+import { REVIEW_STEPS, bringsReportData } from './draft.js'
 import { toSightingTime } from './time.js'
 
 const ORDER = ['description', 'work_type', 'children_quantity', 'children_age', 'time_period', 'sighting_time', 'location']
@@ -24,6 +25,19 @@ export function nextStep(draft, data, now = new Date()) {
 
     let next = { ...draft }
     const asked = draft.last_asked_field
+
+    if (REVIEW_STEPS.includes(asked)) {
+        if (data.intent === 'confirm') {
+            return { draft: { ...next, confirmed: true, last_asked_field: null }, action: { type: 'confirmed' } }
+        }
+        if (data.intent === 'other') return { draft: next, action: { type: 'off_topic' } }
+        if (data.intent === 'add') return { draft: next, action: { type: 'summary', added_details: true, defaults_used: next.defaults_used } }
+
+        if (!bringsReportData(data)) {
+            if (!data.correction_field) return ask(next, { field: 'correction' })
+            next = clearField(next, data.correction_field)
+        }
+    }
 
     if (asked && isMissing(next, asked)) {
         if (APPROXIMATIONS[asked] && !next.approximation_asked.includes(asked)) {
@@ -53,6 +67,17 @@ function ask(draft, { field, help = false, options }) {
     if (help) action.help = true
     if (options) action.options = options
     return { draft: { ...draft, last_asked_field: field }, action }
+}
+
+function clearField(draft, field) {
+    const cleared = {
+        ...draft,
+        approximation_asked: draft.approximation_asked.filter((f) => f !== field),
+        defaults_used: draft.defaults_used.filter((f) => f !== field),
+    }
+    if (field === 'location') return { ...cleared, latitude: null, longitude: null }
+    if (field === 'sighting_time') return { ...cleared, sighting_time: null, pending_time: null }
+    return { ...cleared, [field]: null }
 }
 
 function isMissing(draft, field) {
