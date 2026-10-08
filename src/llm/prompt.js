@@ -1,6 +1,5 @@
 import { WORK_TYPES, AGE_RANGES } from '../report/categories.js'
 
-// Where to send people whose request is outside the agent's scope
 const REFERRALS = `
 - Emergencia o riesgo inmediato para un niño, niña o adolescente: llamar al 911.
 - Denuncia anónima de un delito: 089.

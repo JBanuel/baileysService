@@ -1,15 +1,13 @@
 import { toSightingTime } from './time.js'
 
-// Report drafts, one per conversation. In-memory for now; in brick 3 getDraft, saveDraft and deleteDraft move to Redis.
 const drafts = new Map()
 
-// Fields copied straight from extractData()
 const EXTRACTED_FIELDS = ['children_quantity', 'children_age', 'work_type', 'place']
 
-// Fields that can't be left as "No sé"
-const REQUIRED_FIELDS = ['description', 'children_quantity', 'children_age', 'work_type', 'sighting_time', 'place']
+const FREE_TEXT_FIELDS = ['description', 'more_details']
 
-// Field names match the database payload
+const REFUSAL = /^(no|nada|nada más|ninguno|ya|eso es todo|es todo)(,?\s*gracias)?[.!\s]*$/i
+
 export function emptyDraft() {
     return {
         description: null,
@@ -18,9 +16,14 @@ export function emptyDraft() {
         work_type: null,
         sighting_time: null,
         pending_time: null,
-        place: null,
+        latitude: null,
+        longitude: null,
+        place: null, 
         photos_asked: false,
         last_asked_field: null,
+        approximation_asked: [],
+        details_asked: false,
+        defaults_used: [],
     }
 }
 
@@ -36,38 +39,30 @@ export function deleteDraft(id) {
     drafts.delete(id)
 }
 
-/**
- * Returns a new draft with the extracted data merged in (the original is not modified).
- * @param {object} draft    current draft
- * @param {object} data     what extractData() returned
- * @param {string} message  what the person wrote
- */
+export function setLocation(draft, { lat, lng }) {
+    const valid = Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180
+    if (!valid) return draft
+    return { ...draft, latitude: lat, longitude: lng }
+}
+
 export function mergeData(draft, data, message) {
     const next = { ...draft }
 
-    // New data fills or corrects a field. A null never erases what was already there.
     for (const field of EXTRACTED_FIELDS) {
         if (data[field] !== null && data[field] !== undefined) next[field] = data[field]
     }
 
     mergeTime(next, draft, data)
 
-    // "No sé" answers the last question, so it isn't asked again (except for required fields).
-    const asked = draft.last_asked_field
-    if (data.dont_know && asked && !REQUIRED_FIELDS.includes(asked) && next[asked] === null) {
-        next[asked] = 'No sé'
-    }
-
-    // Every message that brings report data is added to the description, in the person's own words.
     const broughtData =
         EXTRACTED_FIELDS.some((field) => data[field] !== null && data[field] !== undefined) ||
         Boolean(data.hour ?? data.period)
-    if (broughtData) next.description = next.description ? `${next.description}\n${message}` : message
+    const answeredStory = FREE_TEXT_FIELDS.includes(draft.last_asked_field) && !REFUSAL.test(message.trim())
+    if (broughtData || answeredStory) next.description = next.description ? `${next.description}\n${message}` : message
 
     return next
 }
 
-// If there was a pending time ("a las 5") and now only the period arrives ("de la tarde"), they are combined.
 function mergeTime(next, draft, data) {
     const { hour = null, minutes = null, period = null } = data
     const completesPending = hour === null && period !== null && draft.pending_time !== null
