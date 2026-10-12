@@ -1,14 +1,5 @@
 import { WORK_TYPES, AGE_RANGES } from '../report/categories.js'
-
-const REFERRALS = `
-- Emergencia o riesgo inmediato para un niño, niña o adolescente: llamar al 911.
-- Denuncia anónima de un delito: 089.
-- Contenido sexual de menores en internet o redes sociales: Policía Cibernética de la Guardia Nacional, 088.
-- Información general sobre SIPINNA y derechos de niñas, niños y adolescentes: https://www.gob.mx/sipinna
-- Trámites y servicios del municipio de Atizapán de Zaragoza: https://www.atizapan.gob.mx
-- Asistencia social, DIF Atizapán (apoyos, orientación familiar): https://www.difatizapan.gob.mx
-- Procuraduría de Protección de Niñas, Niños y Adolescentes del Estado de México (maltrato, abuso, abandono): https://difem.edomex.gob.mx/centros-asistencia-social-nna
-`.trim()
+import { REFERRALS } from '../report/referrals.js'
 
 export function buildSystemPrompt({ user }) {
   const now = new Date().toLocaleString('es-MX', {
