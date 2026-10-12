@@ -27,6 +27,8 @@ export function emptyDraft() {
         details_asked: false,
         defaults_used: [],
         confirmed: false,
+        last_reply: null,
+        emergency_notified: false,
     }
 }
 
@@ -66,7 +68,7 @@ export function mergeData(draft, data, message) {
 
     if (canWrite('sighting_time', ['sighting_time', 'time_period'])) mergeTime(next, draft, data)
 
-    const answeredStory = FREE_TEXT_FIELDS.includes(asked) && !REFUSAL.test(message.trim())
+    const answeredStory = FREE_TEXT_FIELDS.includes(asked) && data.intent !== 'other' && !REFUSAL.test(message.trim())
     const addsToStory = reviewing && data.intent === 'add'
     if ((!reviewing && (bringsReportData(data) || answeredStory)) || addsToStory) next.description = next.description ? `${next.description}\n${message}` : message
 

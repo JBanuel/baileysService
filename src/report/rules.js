@@ -21,16 +21,24 @@ const DEFAULTS = {
 const MIN_DESCRIPTION_WORDS = 15
 
 export function nextStep(draft, data, now = new Date()) {
-    if (data.emergency) return { draft: { ...draft, last_asked_field: null }, action: { type: 'emergency' } }
+    if (data.emergency && !draft.emergency_notified) {
+        return { draft: { ...draft, emergency_notified: true, last_asked_field: null }, action: { type: 'emergency' } }
+    }
 
     let next = { ...draft }
     const asked = draft.last_asked_field
+    const reviewing = REVIEW_STEPS.includes(asked)
 
-    if (REVIEW_STEPS.includes(asked)) {
+    if (data.intent === 'other' && !bringsReportData(data) && !data.dont_know) {
+        return { draft: next, action: { type: 'off_topic', reviewing } }
+    }
+
+    if (reviewing) {        if (data.intent === 'confirm' && asked === 'correction') {
+            return { draft: { ...next, last_asked_field: 'summary' }, action: { type: 'summary', defaults_used: next.defaults_used } }
+        }
         if (data.intent === 'confirm') {
             return { draft: { ...next, confirmed: true, last_asked_field: null }, action: { type: 'confirmed' } }
         }
-        if (data.intent === 'other') return { draft: next, action: { type: 'off_topic' } }
         if (data.intent === 'add') return { draft: next, action: { type: 'summary', added_details: true, defaults_used: next.defaults_used } }
 
         if (!bringsReportData(data)) {

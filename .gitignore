@@ -140,3 +140,6 @@ dist
 
 #baileys logs
 auth_info_baileys/
+
+# Local reference notes
+docs/prompt-original.md
