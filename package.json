@@ -2,7 +2,7 @@
   "type": "module",
   "scripts": {
     "start": "node src/index.js",
-    "chat": "node src/llm/chat.js"
+    "chat": "node src/llm/cli_chat.js"
   },
   "dependencies": {
     "@hapi/boom": "^10.0.1",

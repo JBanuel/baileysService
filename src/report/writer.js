@@ -22,7 +22,7 @@ const ASK = {
     children_age: 'Pregunta qué EDAD aproximada tenían los niños, en años. No le muestres rangos.',
     sighting_time: 'Pregunta a qué hora los vio, aunque sea aproximada.',
     location:
-        'Pide que comparta la ubicación (no le preguntes "¿dónde?" para que la escriba) del lugar donde vio a los menores: tocar el clip 📎 o el botón +, elegir "Ubicación" y enviar el punto. ' +
+        'Pide que comparta la ubicación (no le preguntes "¿dónde?" para que la escriba) del lugar donde vio a los menores: tocar el clip o el botón +, elegir "Ubicación" y enviar el punto. ' +
         'Explica que puede mover el mapa o buscar el lugar si ya no está ahí.',
     more_details:
         'Invítale, sin obligar y en UNA sola pregunta, a contar un poco más de lo que vio (por ejemplo, si había algún adulto con ellos o si pasa seguido).',
@@ -154,3 +154,12 @@ export function confirmedMessage() {
 }
 
 const joinWithY = (items) => (items.length > 1 ? `${items.slice(0, -1).join(', ')} y ${items.at(-1)}` : items[0])
+
+export function unsupportedMessage(type) {
+    if (type === 'audio') return 'Por ahora no puedo escuchar audios. ¿Me lo puedes escribir?'
+    return 'Por ahora no puedo recibir fotos, videos ni archivos. Puedes contarme por escrito lo que viste.'
+}
+
+export function errorMessage() {
+    return 'Perdón, tuve un problema para procesar tu mensaje. ¿Me lo puedes enviar de nuevo en un momento?'
+}
