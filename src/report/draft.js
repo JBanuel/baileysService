@@ -29,6 +29,7 @@ export function emptyDraft() {
         confirmed: false,
         last_reply: null,
         emergency_notified: false,
+        api_report: null, 
     }
 }
 

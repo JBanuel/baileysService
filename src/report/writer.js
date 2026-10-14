@@ -163,6 +163,13 @@ export function confirmedMessage() {
     )
 }
 
+export function sendFailedMessage() {
+    return (
+        'Perdón, no pude registrar tu reporte en este momento. Tus datos están guardados: ' +
+        'escríbeme *sí* en unos minutos para intentarlo de nuevo.'
+    )
+}
+
 const joinWithY = (items) => (items.length > 1 ? `${items.slice(0, -1).join(', ')} y ${items.at(-1)}` : items[0])
 
 export function unsupportedMessage(type) {
