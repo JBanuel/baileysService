@@ -1,8 +1,13 @@
 import { errorMessage, unsupportedMessage } from '../report/writer.js'
 
 export function createMessageHandler({ handleMessage, resetConversation, allowedNumbers }) {
+    const allowed = new Set(allowedNumbers.map(normalizePhone))
+
     return async function onMessage(sock, msg) {
-        if (!allowedNumbers.includes(msg.phone)) return
+        if (!allowed.has(normalizePhone(msg.phone))) {
+            console.log(`[wa] ignored message from …${String(msg.phone ?? msg.jid).slice(-4)} (not in ALLOWED_NUMBERS)`)
+            return
+        }
         console.log(`[wa] ${msg.phone} (${msg.type}): ${msg.text ?? msg.caption ?? ''}`)
 
         if (msg.type === 'text' && msg.text.toLowerCase() === '/reset') {
@@ -35,6 +40,12 @@ async function replyTo(msg, handleMessage) {
     const note = unsupportedMessage(msg.type)
     if (!msg.caption) return note
     return `${note}\n\n${await handleMessage(msg.jid, { text: msg.caption })}`
+}
+
+export function normalizePhone(phone) {
+    if (!phone) return null
+    const digits = String(phone).replace(/\D/g, '')
+    return digits.length === 13 && digits.startsWith('521') ? `52${digits.slice(3)}` : digits
 }
 
 const quietly = (promise) => Promise.resolve(promise).catch(() => {})

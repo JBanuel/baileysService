@@ -47,6 +47,7 @@ export async function writeReply(action, draft, message) {
     if (action.type === 'summary') return summaryMessage(draft, action)
     if (action.type === 'confirmed') return confirmedMessage()
     if (action.type === 'off_topic') return offTopicMessage(await chooseReferral(message), followUp(action, draft))
+    if (action.type === 'courtesy') return courtesyMessage(action, draft)
     if (action.field === 'correction') return correctionQuestion()
     if (action.field === 'time_period' && !action.help) return timePeriodQuestion(draft.pending_time)
     return askModel(askInstruction(action, draft), message)
@@ -94,6 +95,14 @@ export function followUp({ reviewing }, draft) {
     return draft.last_reply ? `Cuando quieras, seguimos con tu reporte:\n${draft.last_reply}` : 'Cuando quieras, seguimos con tu reporte.'
 }
 
+export function courtesyMessage({ reviewing }, draft) {
+    if (reviewing || draft.description !== null) return followUp({ reviewing }, draft)
+    return (
+        'Soy *Sipinnito*, el asistente de SIPINNA Atizapán\n' +
+        'Si ves a niñas o niños trabajando, cuéntame qué viste y te ayudo a hacer un reporte.'
+    )
+}
+
 export function correctionQuestion() {
     return '¿Qué dato quieres corregir? Por ejemplo: la cantidad, la edad, la actividad, la hora o la ubicación.'
 }
@@ -112,6 +121,7 @@ export function toWhatsAppFormat(text) {
         .replace(/^"|"$/g, '')
         .replace(/\*\*(.+?)\*\*/g, '*$1*')
         .replace(/^#+\s*/gm, '')
+        .replace(/^\*([^*]+)\*$/s, '$1')
 }
 
 export function emergencyMessage() {

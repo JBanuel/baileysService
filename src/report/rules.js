@@ -29,6 +29,8 @@ export function nextStep(draft, data, now = new Date()) {
     const asked = draft.last_asked_field
     const reviewing = REVIEW_STEPS.includes(asked)
 
+    if (data.intent === 'courtesy' && !bringsReportData(data)) return { draft: next, action: { type: 'courtesy', reviewing } }
+
     if (data.intent === 'other' && !bringsReportData(data) && !data.dont_know) {
         return { draft: next, action: { type: 'off_topic', reviewing } }
     }

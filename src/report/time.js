@@ -19,6 +19,13 @@ export function mentionsPeriod(message, period) {
     return Boolean(keyword) && message.toLowerCase().includes(keyword)
 }
 
+// "8 am", "7 p.m.": only right after a number, so words like "amigos" or "cama" don't count
+export function amPmPeriod(message) {
+    if (/\d\s*p\.?\s?m\b\.?(?![a-záéíóúñ])/i.test(message)) return 'afternoon'
+    if (/\d\s*a\.?\s?m\b\.?(?![a-záéíóúñ])/i.test(message)) return 'morning'
+    return null
+}
+
 const APPROXIMATE_TIMES = { morning: '09:00', noon: '12:00', afternoon: '16:00', night: '20:00', early_morning: '03:00' }
 
 export function toSightingTime({ hour = null, minutes = null, period = null }) {
