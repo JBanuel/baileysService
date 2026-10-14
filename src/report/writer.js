@@ -1,4 +1,5 @@
 import { chat, chatJSON } from '../llm/ollama.js'
+import { MAX_PHOTOS } from './photoStore.js'
 import { REFERRAL_OPTIONS } from './referrals.js'
 
 const PERSONA = `Eres Sipinnito, el asistente virtual de SIPINNA (Sistema Nacional de Protección Integral de Niñas, Niños y Adolescentes) en Atizapán de Zaragoza, Estado de México. Atiendes por WhatsApp a personas que reportan trabajo infantil.
@@ -43,7 +44,23 @@ const FIELD_LABELS = {
 }
 
 export async function writeReply(action, draft, message) {
-    if (action.type === 'emergency') return emergencyMessage()
+    return (await writeReplyParts(action, draft, message)).text
+}
+
+export async function writeReplyParts(action, draft, message) {
+    const question = await replyFor(action, draft, message)
+    let text = question
+    if (action.photo_ack && action.field !== 'more_photos') {
+        text = `📷 Recibí tu foto (${action.photo_ack} de ${MAX_PHOTOS}).\n\n${text}`
+    }
+    if (action.emergency) text = `${emergencyMessage()}\n\n${text}`
+    return { text, question }
+}
+
+async function replyFor(action, draft, message) {
+    if (action.type === 'photo_rejected') return photoRejectedMessage(action.reason, draft)
+    if (action.field === 'photos') return photosQuestion()
+    if (action.field === 'more_photos') return morePhotosMessage(action.photo_ack)
     if (action.type === 'summary') return summaryMessage(draft, action)
     if (action.type === 'confirmed') return confirmedMessage()
     if (action.type === 'off_topic') return offTopicMessage(await chooseReferral(message), followUp(action, draft))
@@ -126,8 +143,8 @@ export function toWhatsAppFormat(text) {
 
 export function emergencyMessage() {
     return (
-        'Si un niño o niña está en peligro *en este momento*, por favor llama al *911* de inmediato.\n\n' +
-        'Cuando sea seguro, si quieres, podemos continuar con tu reporte.'
+        'Si un niño o niña está en peligro *en este momento*, por favor llama al *911* de inmediato. 🚨\n\n' +
+        'Cuando sea seguro, seguimos con tu reporte:'
     )
 }
 
@@ -140,6 +157,7 @@ export function summaryMessage(draft, { defaults_used = [], added_details = fals
         `• *Actividad:* ${draft.work_type}`,
         `• *Hora:* ${draft.sighting_time}`,
         '• *Ubicación:* recibida',
+        `• *Fotos:* ${draft.photos.length || 'ninguna'}`,
     ]
 
     const approximated = [...new Set(defaults_used.map((field) => FIELD_LABELS[field]).filter(Boolean))]
@@ -174,8 +192,34 @@ const joinWithY = (items) => (items.length > 1 ? `${items.slice(0, -1).join(', '
 
 export function unsupportedMessage(type) {
     if (type === 'audio') return 'Por ahora no puedo escuchar audios. ¿Me lo puedes escribir?'
-    return 'Por ahora no puedo recibir fotos, videos ni archivos. Puedes contarme por escrito lo que viste.'
+    return 'Por ahora no puedo recibir videos ni archivos. Si tienes fotos, envíalas como imagen.'
 }
+
+export function photosQuestion() {
+    return (
+        `Si tienes fotos del lugar o de lo que estaban haciendo, puedes enviarme hasta ${MAX_PHOTOS}. 📷\n\n` +
+        '⚠️ *Importante:* que no se vea la cara de ninguna persona, sobre todo de niñas o niños. ' +
+        'Nunca te acerques ni te pongas en riesgo para tomarlas.\n\n' +
+        'Si no tienes fotos, escribe *no*.'
+    )
+}
+
+export function morePhotosMessage(count) {
+    return `📷 Recibí tu foto (${count} de ${MAX_PHOTOS}). Si tienes otra, envíala; si no, escribe *listo*.`
+}
+
+const REJECTION_REASONS = {
+    too_many: `Ya tengo ${MAX_PHOTOS} fotos, que es el máximo por reporte, así que no guardé esa.`,
+}
+
+export function photoRejectedMessage(reason, draft) {
+    const inPhotoStep = ['photos', 'more_photos'].includes(draft.last_asked_field)
+    const next = inPhotoStep
+        ? 'Si no tienes más fotos, escribe *listo*.'
+        : followUp({ reviewing: draft.last_asked_field === 'summary' }, draft)
+    return `${REJECTION_REASONS[reason]}\n\n${next}`
+}
+
 
 export function errorMessage() {
     return 'Perdón, tuve un problema para procesar tu mensaje. ¿Me lo puedes enviar de nuevo en un momento?'

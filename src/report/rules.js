@@ -1,7 +1,10 @@
 import { REVIEW_STEPS, bringsReportData } from './draft.js'
+import { MAX_PHOTOS } from './photoStore.js'
 import { toSightingTime } from './time.js'
 
-const ORDER = ['description', 'work_type', 'children_quantity', 'children_age', 'time_period', 'sighting_time', 'location']
+const ORDER = ['description', 'work_type', 'children_quantity', 'children_age', 'time_period', 'sighting_time', 'location', 'photos']
+
+const PHOTO_STEPS = ['photos', 'more_photos']
 
 const APPROXIMATIONS = {
     work_type: ['vendiendo algo', 'pidiendo dinero', 'limpiando parabrisas', 'cargando cosas'],
@@ -21,18 +24,32 @@ const DEFAULTS = {
 const MIN_DESCRIPTION_WORDS = 15
 
 export function nextStep(draft, data, now = new Date()) {
-    if (data.emergency && !draft.emergency_notified) {
-        return { draft: { ...draft, emergency_notified: true, last_asked_field: null }, action: { type: 'emergency' } }
-    }
+    if (data.photo === 'too_many') return { draft, action: { type: 'photo_rejected', reason: 'too_many' } }
 
+    const emergency = data.emergency && !draft.emergency_notified
+    const step = decide(emergency ? { ...draft, emergency_notified: true } : draft, data, now)
+    if (emergency) step.action.emergency = true
+    if (data.photo === 'accepted') step.action.photo_ack = step.draft.photos.length
+    return step
+}
+
+function decide(draft, data, now) {
     let next = { ...draft }
     const asked = draft.last_asked_field
     const reviewing = REVIEW_STEPS.includes(asked)
+    const photoStep = PHOTO_STEPS.includes(asked)
 
-    if (data.intent === 'courtesy' && !bringsReportData(data)) return { draft: next, action: { type: 'courtesy', reviewing } }
+    if (data.photo === 'accepted') {
+        if (reviewing) return summary(next)
+        if (photoStep && next.photos.length < MAX_PHOTOS) return ask(next, { field: 'more_photos' })
+    }
 
-    if (data.intent === 'other' && !bringsReportData(data) && !data.dont_know) {
-        return { draft: next, action: { type: 'off_topic', reviewing } }
+    if (!photoStep) {
+        if (data.intent === 'courtesy' && !bringsReportData(data)) return { draft: next, action: { type: 'courtesy', reviewing } }
+
+        if (data.intent === 'other' && !bringsReportData(data) && !data.dont_know) {
+            return { draft: next, action: { type: 'off_topic', reviewing } }
+        }
     }
 
     if (reviewing) {        if (data.intent === 'confirm' && asked === 'correction') {
@@ -49,7 +66,8 @@ export function nextStep(draft, data, now = new Date()) {
         }
     }
 
-    if (asked && isMissing(next, asked)) {
+    const answeredInText = !data.location && !data.photo
+    if (answeredInText && asked && isMissing(next, asked)) {
         if (APPROXIMATIONS[asked] && !next.approximation_asked.includes(asked)) {
             next.approximation_asked = [...next.approximation_asked, asked]
             return ask(next, { field: asked, options: APPROXIMATIONS[asked] })
@@ -66,17 +84,20 @@ export function nextStep(draft, data, now = new Date()) {
         return ask({ ...next, details_asked: true }, { field: 'more_details' })
     }
 
-    return {
-        draft: { ...next, last_asked_field: 'summary' },
-        action: { type: 'summary', defaults_used: next.defaults_used },
-    }
+    return summary(next)
+}
+
+function summary(draft) {
+    return { draft: { ...draft, last_asked_field: 'summary' }, action: { type: 'summary', defaults_used: draft.defaults_used } }
 }
 
 function ask(draft, { field, help = false, options }) {
     const action = { type: 'ask', field }
     if (help) action.help = true
     if (options) action.options = options
-    return { draft: { ...draft, last_asked_field: field }, action }
+    const asked = { ...draft, last_asked_field: field }
+    if (field === 'photos') asked.photos_asked = true 
+    return { draft: asked, action }
 }
 
 function clearField(draft, field) {
@@ -94,7 +115,8 @@ function isMissing(draft, field) {
     if (field === 'time_period') return draft.pending_time !== null
     if (field === 'sighting_time') return draft.sighting_time === null && draft.pending_time === null
     if (field === 'location') return draft.latitude === null || draft.longitude === null
-    if (field === 'more_details') return false
+    if (field === 'photos') return !draft.photos_asked && draft.photos.length === 0
+    if (field === 'more_details' || field === 'more_photos') return false
     return draft[field] === null
 }
 

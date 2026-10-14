@@ -1,9 +1,10 @@
+import { downloadMediaMessage } from '@whiskeysockets/baileys'
 import { ALLOWED_NUMBERS } from './config.js'
-import { handleMessage } from './report/conversation.js'
-import { deleteDraft } from './report/draft.js'
+import { handleMessage, resetConversation } from './report/conversation.js'
 import { initDraftStore } from './report/draftStore.js'
+import { deleteOldPhotos } from './report/photoStore.js'
 import { createMessageHandler } from './whatsapp/bot.js'
-import { connectToWhatsApp } from './whatsapp/connection.js'
+import { connectToWhatsApp, logger } from './whatsapp/connection.js'
 import { enqueue } from './whatsapp/queue.js'
 
 try {
@@ -15,7 +16,20 @@ try {
 
 if (ALLOWED_NUMBERS.length === 0) console.warn('[bot] ALLOWED_NUMBERS is empty in .env: the bot will not answer anyone')
 
-const onMessage = createMessageHandler({ handleMessage, resetConversation: deleteDraft, allowedNumbers: ALLOWED_NUMBERS })
+const cleanPhotos = () =>
+    deleteOldPhotos()
+        .then((deleted) => deleted && console.log(`[photos] deleted ${deleted} old photo(s)`))
+        .catch((error) => console.error('[photos] cleanup failed:', error.message))
+cleanPhotos()
+setInterval(cleanPhotos, 60 * 60 * 1000).unref()
+
+const onMessage = createMessageHandler({
+    handleMessage,
+    resetConversation,
+    allowedNumbers: ALLOWED_NUMBERS,
+    downloadImage: (sock, msg) =>
+        downloadMediaMessage(msg.raw, 'buffer', {}, { logger, reuploadRequest: sock.updateMediaMessage }),
+})
 
 await connectToWhatsApp({
     onMessage: (sock, msg) =>

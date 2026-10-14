@@ -1,6 +1,6 @@
 import { errorMessage, unsupportedMessage } from '../report/writer.js'
 
-export function createMessageHandler({ handleMessage, resetConversation, allowedNumbers }) {
+export function createMessageHandler({ handleMessage, resetConversation, allowedNumbers, downloadImage }) {
     const allowed = new Set(allowedNumbers.map(normalizePhone))
 
     return async function onMessage(sock, msg) {
@@ -21,7 +21,7 @@ export function createMessageHandler({ handleMessage, resetConversation, allowed
 
         let reply
         try {
-            reply = await replyTo(msg, handleMessage)
+            reply = await replyTo(sock, msg, { handleMessage, downloadImage })
         } catch (error) {
             console.error('[bot] error:', error)
             reply = errorMessage()
@@ -33,9 +33,13 @@ export function createMessageHandler({ handleMessage, resetConversation, allowed
     }
 }
 
-async function replyTo(msg, handleMessage) {
+async function replyTo(sock, msg, { handleMessage, downloadImage }) {
     if (msg.type === 'text') return handleMessage(msg.jid, { text: msg.text })
     if (msg.type === 'location') return handleMessage(msg.jid, { location: msg.location })
+    if (msg.type === 'image') {
+        const buffer = await downloadImage(sock, msg)
+        return handleMessage(msg.jid, { image: { buffer, contentType: msg.mimetype ?? 'image/jpeg' }, caption: msg.caption })
+    }
 
     const note = unsupportedMessage(msg.type)
     if (!msg.caption) return note

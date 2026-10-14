@@ -21,6 +21,7 @@ export function emptyDraft() {
         latitude: null,
         longitude: null,
         place: null, 
+        photos: [], 
         photos_asked: false,
         last_asked_field: null,
         approximation_asked: [],

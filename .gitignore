@@ -143,3 +143,6 @@ auth_info_baileys/
 
 # Local reference notes
 docs/prompt-original.md
+
+# Photos waiting to be sent (personal data)
+storage/
