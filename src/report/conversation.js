@@ -4,7 +4,7 @@ import { nextStep } from './rules.js'
 import { writeReply } from './writer.js'
 
 export async function handleMessage(chatId, { text, location }) {
-    let draft = getDraft(chatId)
+    let draft = await getDraft(chatId)
     let data = { emergency: false }
 
     if (location) {
@@ -18,9 +18,9 @@ export async function handleMessage(chatId, { text, location }) {
     const reply = await writeReply(step.action, step.draft, text ?? '(compartió una ubicación)')
 
     if (step.action.type === 'confirmed') {
-        deleteDraft(chatId)
+        await deleteDraft(chatId)
     } else {
-        saveDraft(chatId, { ...step.draft, last_reply: reply })
+        await saveDraft(chatId, { ...step.draft, last_reply: reply })
     }
 
     return reply

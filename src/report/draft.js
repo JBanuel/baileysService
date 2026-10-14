@@ -1,6 +1,6 @@
+import { DRAFT_TTL_SECONDS } from '../config.js'
+import { draftKey, getStore } from './draftStore.js'
 import { toSightingTime } from './time.js'
-
-const drafts = new Map()
 
 const EXTRACTED_FIELDS = ['children_quantity', 'children_age', 'work_type', 'place']
 
@@ -32,16 +32,17 @@ export function emptyDraft() {
     }
 }
 
-export function getDraft(id) {
-    return drafts.get(id) ?? emptyDraft()
+export async function getDraft(id) {
+    const saved = await (await getStore()).get(draftKey(id))
+    return saved ? { ...emptyDraft(), ...saved } : emptyDraft()
 }
 
-export function saveDraft(id, draft) {
-    drafts.set(id, draft)
+export async function saveDraft(id, draft) {
+    await (await getStore()).set(draftKey(id), draft, DRAFT_TTL_SECONDS)
 }
 
-export function deleteDraft(id) {
-    drafts.delete(id)
+export async function deleteDraft(id) {
+    await (await getStore()).delete(draftKey(id))
 }
 
 export function setLocation(draft, { lat, lng }) {

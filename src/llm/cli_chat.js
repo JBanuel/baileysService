@@ -1,8 +1,11 @@
 import readline from 'node:readline/promises'
 import { deleteDraft, getDraft } from '../report/draft.js'
 import { handleMessage } from '../report/conversation.js'
+import { initDraftStore } from '../report/draftStore.js'
 
 const CHAT_ID = 'terminal'
+
+await initDraftStore()
 
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
 rl.on('close', () => process.exit(0))
@@ -14,12 +17,12 @@ while (true) {
     if (!input) continue
 
     if (input === '/reset') {
-        deleteDraft(CHAT_ID)
+        await deleteDraft(CHAT_ID)
         console.log('(draft deleted)\n')
         continue
     }
     if (input === '/draft') {
-        console.log(getDraft(CHAT_ID), '\n')
+        console.log(await getDraft(CHAT_ID), '\n')
         continue
     }
 

@@ -11,7 +11,7 @@ export function createMessageHandler({ handleMessage, resetConversation, allowed
         console.log(`[wa] ${msg.phone} (${msg.type}): ${msg.text ?? msg.caption ?? ''}`)
 
         if (msg.type === 'text' && msg.text.toLowerCase() === '/reset') {
-            resetConversation(msg.jid)
+            await resetConversation(msg.jid)
             await sock.sendMessage(msg.jid, { text: 'Listo, empecemos de nuevo.' })
             return
         }
