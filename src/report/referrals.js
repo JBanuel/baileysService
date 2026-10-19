@@ -1,3 +1,20 @@
+/**
+ * Where to send people who ask about something other than child labor.
+ *
+ * @module report/referrals
+ */
+
+/**
+ * A place that can help with a topic.
+ * @typedef {object} Referral
+ * @property {string} label The topic it helps with, shown to the person.
+ * @property {string} contact Phone number or website.
+ */
+
+/**
+ * Referral options, by id. The model picks one of these ids for off-topic messages.
+ * @type {Record<string, Referral>}
+ */
 export const REFERRAL_OPTIONS = {
     emergency: {
         label: 'Emergencia o riesgo inmediato para un niño, niña o adolescente',
@@ -26,6 +43,10 @@ export const REFERRAL_OPTIONS = {
     },
 }
 
+/**
+ * Every referral as a bulleted list, one per line.
+ * @type {string}
+ */
 export const REFERRALS = Object.values(REFERRAL_OPTIONS)
     .map(({ label, contact }) => `- ${label}: ${contact}.`)
     .join('\n')

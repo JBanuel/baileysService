@@ -1,8 +1,23 @@
+/**
+ * Terminal chat with the bot, to try conversations without WhatsApp
+ * (`npm run chat`). Uses the same conversation logic and Redis drafts as the bot.
+ *
+ * Commands:
+ * - `/location lat,lng` shares a location.
+ * - `/draft` prints the current draft.
+ * - `/reset` deletes the draft.
+ *
+ * @module llm/cli_chat
+ */
+
 import readline from 'node:readline/promises'
 import { deleteDraft, getDraft } from '../report/draft.js'
 import { handleMessage } from '../report/conversation.js'
 import { initDraftStore } from '../report/draftStore.js'
 
+/**
+ * Chat id of the terminal conversation in the draft store.
+ */
 const CHAT_ID = 'terminal'
 
 await initDraftStore()

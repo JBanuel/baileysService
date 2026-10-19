@@ -1,5 +1,28 @@
+/**
+ * Converts raw Baileys messages into the simple shape the bot works with.
+ *
+ * @module whatsapp/message_handler
+ */
+
 import { isPnUser, normalizeMessageContent, isLidUser, jidDecode } from "@whiskeysockets/baileys"
 
+/**
+ * Content of a message, by type.
+ *
+ * @typedef {object} MessageContent
+ * @property {'text' | 'location' | 'image' | 'audio' | 'video' | 'document'} type
+ * @property {string} [text] Text of a text message.
+ * @property {{ lat: number, lng: number, name?: string, address?: string }} [location] Shared location.
+ * @property {string} [caption] Caption of an image, video or document.
+ * @property {string} [mimetype] MIME type of an image.
+ */
+
+/**
+ * Extracts the content of a message. Live locations count as locations.
+ *
+ * @param {import('@whiskeysockets/baileys').proto.IMessage | null | undefined} msg
+ * @returns {MessageContent | null} `null` for message types the bot does not handle.
+ */
 function extractContent(msg) {
     const content = normalizeMessageContent(msg)
     if (!content) return null
@@ -41,6 +64,31 @@ function extractContent(msg) {
     return null 
 }
 
+/**
+ * A message from a person, ready for the bot.
+ *
+ * @typedef {MessageContent & {
+ *   jid: string,
+ *   phone: string | undefined,
+ *   name: string | undefined,
+ *   key: import('@whiskeysockets/baileys').WAMessageKey,
+ *   raw: import('@whiskeysockets/baileys').WAMessage,
+ * }} IncomingMessage
+ * `jid` is the chat id; `phone` the sender's number, when known; `name` their
+ * WhatsApp display name; `key` identifies the message (for read receipts) and
+ * `raw` is the original message (to download media).
+ */
+
+/**
+ * Parses a raw message. Text and captions are trimmed.
+ *
+ * The phone number is taken from the chat id, or from the alternate id when
+ * the chat uses a LID (WhatsApp's privacy id) instead of the phone number.
+ *
+ * @param {import('@whiskeysockets/baileys').WAMessage} msg
+ * @returns {IncomingMessage | null} `null` for the bot's own messages, chats
+ *   that are not with a person, unsupported types and empty text.
+ */
 export function parseIncoming(msg){
     const jid = msg.key.remoteJid
     if (!jid)  return null

@@ -1,3 +1,13 @@
+/**
+ * Entry point of the WhatsApp bot.
+ *
+ * Connects to Redis, schedules the hourly cleanup of abandoned photos, and
+ * connects to WhatsApp. Incoming messages are queued per chat so each person's
+ * messages are answered one at a time, in order.
+ *
+ * @module index
+ */
+
 import { downloadMediaMessage } from '@whiskeysockets/baileys'
 import { ALLOWED_NUMBERS } from './config.js'
 import { handleMessage, resetConversation } from './report/conversation.js'
@@ -16,6 +26,10 @@ try {
 
 if (ALLOWED_NUMBERS.length === 0) console.warn('[bot] ALLOWED_NUMBERS is empty in .env: the bot will not answer anyone')
 
+/**
+ * Deletes photos older than a day and logs the result. Errors are logged, never thrown.
+ * @returns {Promise<void>}
+ */
 const cleanPhotos = () =>
     deleteOldPhotos()
         .then((deleted) => deleted && console.log(`[photos] deleted ${deleted} old photo(s)`))
