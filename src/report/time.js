@@ -116,3 +116,99 @@ function to24Hour(hour, period) {
 function formatTime(hour, minutes) {
     return `${String(hour).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
 }
+
+/**
+ * Time zone used for dates and "now": the bot serves Atizapán de Zaragoza.
+ */
+const TIME_ZONE = 'America/Mexico_City'
+
+const WEEKDAY_NUMBERS = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }
+
+/**
+ * Date, time and day of the week of `now` in Mexico City.
+ *
+ * @param {Date} [now]
+ * @returns {{ date: string, time: string, weekday: number }} `date` as `YYYY-MM-DD`,
+ *   `time` as `HH:MM` and `weekday` from 0 (Sunday) to 6 (Saturday).
+ */
+export function localNow(now = new Date()) {
+    const parts = Object.fromEntries(
+        new Intl.DateTimeFormat('en-CA', {
+            timeZone: TIME_ZONE,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hourCycle: 'h23',
+            weekday: 'short',
+        })
+            .formatToParts(now)
+            .map(({ type, value }) => [type, value]),
+    )
+    return { date: `${parts.year}-${parts.month}-${parts.day}`, time: `${parts.hour}:${parts.minute}`, weekday: WEEKDAY_NUMBERS[parts.weekday] }
+}
+
+/**
+ * Moves a `YYYY-MM-DD` date by `days`.
+ * @param {string} date
+ * @param {number} days Negative to go back.
+ * @returns {string}
+ */
+export function shiftDate(date, days) {
+    const [year, month, day] = date.split('-').map(Number)
+    return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10)
+}
+
+/**
+ * Words for a day relative to today, and how many days back they are.
+ * "antes de ayer" and "anteayer" go before "ayer", which they contain.
+ */
+const RELATIVE_DAYS = [
+    ['antes de ayer', 2],
+    ['anteayer', 2],
+    ['antier', 2],
+    ['anoche', 1],
+    ['ayer', 1],
+    ['hoy', 0],
+]
+
+const WEEKDAY_NAMES = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado']
+
+/**
+ * Lowercases and removes accents, so "sábado" and "sabado" read the same.
+ * @param {string} text
+ * @returns {string}
+ */
+const normalize = (text) => text.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+
+/**
+ * Day of the sighting named in the message: "hoy", "ayer", "antier", "anoche"
+ * or a day of the week ("el sábado" is the most recent Saturday, today included).
+ * Read by the code, not the model: it is a small, fixed vocabulary.
+ *
+ * @param {string} message
+ * @param {Date} [now]
+ * @returns {string | null} The date as `YYYY-MM-DD`, or `null` when no day is named.
+ */
+export function dayFromMessage(message, now = new Date()) {
+    const text = normalize(message)
+    const { date: today, weekday } = localNow(now)
+
+    const relative = RELATIVE_DAYS.find(([words]) => new RegExp(`\\b${words}\\b`).test(text))
+    if (relative) return shiftDate(today, -relative[1])
+
+    const named = WEEKDAY_NAMES.findIndex((day) => new RegExp(`\\b${day}\\b`).test(text))
+    if (named >= 0) return shiftDate(today, -((weekday - named + 7) % 7))
+
+    return null
+}
+
+/**
+ * Whether the person says it is happening right now ("ahorita", "en este momento").
+ * @param {string} message
+ * @returns {boolean}
+ */
+export function isHappeningNow(message) {
+    return /\b(ahorita|ahora mismo|en este momento|justo ahora)\b/.test(normalize(message))
+}

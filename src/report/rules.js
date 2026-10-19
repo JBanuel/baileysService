@@ -13,7 +13,7 @@ import { toSightingTime } from './time.js'
 /**
  * Order in which missing fields are asked.
  */
-const ORDER = ['description', 'work_type', 'children_quantity', 'children_age', 'time_period', 'sighting_time', 'location', 'photos']
+const ORDER = ['description', 'work_type', 'children_quantity', 'children_age', 'risk', 'time_period', 'sighting_time', 'location', 'photos']
 
 /**
  * Steps in which the bot is waiting for photos.
@@ -25,19 +25,22 @@ const PHOTO_STEPS = ['photos', 'more_photos']
  */
 const APPROXIMATIONS = {
     work_type: ['vendiendo algo', 'pidiendo dinero', 'limpiando parabrisas', 'cargando cosas'],
-    children_quantity: ['2', '5', '10', '20'],
-    children_age: ['menos de 5 años', 'como 7', 'como 10', 'como 13', 'como 16'],
+    children_quantity: ['1', '2', '3', '4', '5 o más'],
+    children_age: ['menos de 6 años', 'entre 6 y 11', 'entre 12 y 14', 'entre 15 y 17'],
     sighting_time: ['en la mañana', 'en la tarde', 'en la noche'],
 }
 
 /**
- * Values used when a person still does not know after being offered options.
- * They are flagged in the summary so the person can correct them.
+ * Values used when a person still does not know after being offered options, the
+ * same "No sé" the web form offers. The time, which the API needs, falls back to a
+ * guess or to the time of the report. They are flagged in the summary so the
+ * person can correct them. The risk has no options: a "no sé" is final.
  */
 const DEFAULTS = {
-    work_type: () => ({ work_type: 'No sé' }),
-    children_quantity: () => ({ children_quantity: 1 }),
+    work_type: () => ({ work_type: ['No sé'] }),
+    children_quantity: () => ({ children_quantity: 'No sé' }),
     children_age: () => ({ children_age: 'No sé' }),
+    risk: () => ({ risk: 'no_se' }),
     time_period: (draft) => ({ sighting_time: guessTime(draft.pending_time), pending_time: null }),
     sighting_time: (draft, now) => ({ sighting_time: currentTime(now) }),
 }
@@ -152,7 +155,10 @@ function decide(draft, data, now) {
 
         if (!bringsReportData(data)) {
             if (!data.correction_field) return ask(next, { field: 'correction' })
-            next = clearField(next, data.correction_field)
+            next =
+                data.correction_field === 'immediate_danger'
+                    ? { ...next, immediate_danger: data.emergency || !draft.immediate_danger }
+                    : clearField(next, data.correction_field)
         }
     }
 
@@ -220,7 +226,7 @@ function clearField(draft, field) {
         defaults_used: draft.defaults_used.filter((f) => f !== field),
     }
     if (field === 'location') return { ...cleared, latitude: null, longitude: null }
-    if (field === 'sighting_time') return { ...cleared, sighting_time: null, pending_time: null }
+    if (field === 'sighting_time') return { ...cleared, sighting_time: null, pending_time: null, sighting_date: null }
     return { ...cleared, [field]: null }
 }
 

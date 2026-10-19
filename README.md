@@ -31,12 +31,12 @@ Algunos ejemplos de esa división:
 ## Una conversación
 
 1. La persona cuenta lo que vio, con sus palabras. Si su relato ya trae varios datos, el bot no los vuelve a preguntar.
-2. El bot pregunta, uno por uno, los datos que falten. Si la persona no sabe, le ofrece opciones aproximadas ("¿2, 5, 10 o 20?"); si aun así no sabe, usa un valor por defecto y lo avisa en el resumen.
+2. El bot pregunta, uno por uno, los datos que falten (los mismos del formulario web: cantidad, edad, actividades, situación de riesgo y cuándo). Si la persona no sabe, le ofrece opciones ("¿1, 2, 3, 4 o 5 o más?"); si aun así no sabe, el dato queda como *No sé* y se avisa en el resumen.
 3. Pide que comparta la **ubicación** desde WhatsApp (obligatoria: nunca se inventa).
 4. Ofrece recibir hasta **2 fotos** (opcionales), recordando que no se vea la cara de nadie.
 5. Si el relato es muy corto, invita a contar un poco más.
 6. Muestra el **resumen**. La persona confirma, corrige un dato ("no, eran cinco") o agrega algo.
-7. Al confirmar, el reporte se registra en el sistema de SIPINNA y se borra del bot.
+7. Al confirmar, el reporte se registra en el sistema de SIPINNA, el bot le da a la persona su **folio** y borra el reporte de su memoria.
 
 En cualquier momento:
 
@@ -246,10 +246,8 @@ Si un paso falla, el bot conserva el reporte y le pide a la persona que escriba 
 
 ## Limitaciones conocidas
 
-- **Folio:** la API no devuelve el folio de los reportes anónimos, así que el bot todavía no lo puede mostrar.
 - **Fotos:** no se revisa automáticamente que no aparezcan rostros; el bot solo se lo pide a la persona.
 - **Edades:** si los niños tienen edades distintas, se guarda un solo rango (la descripción conserva las edades exactas).
-- **Valores:** los tipos de trabajo y rangos de edad del bot todavía no están alineados con los de la app de SIPINNA.
 - **Historial:** la persona aún no puede consultar sus reportes anteriores desde el chat.
 
 ## Licencia

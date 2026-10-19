@@ -7,8 +7,10 @@
  */
 
 import { chat, chatJSON } from '../llm/ollama.js'
+import { MAX_CHILDREN_QUANTITY } from './categories.js'
 import { MAX_PHOTOS } from './photoStore.js'
 import { REFERRAL_OPTIONS } from './referrals.js'
+import { localNow, shiftDate } from './time.js'
 
 /**
  * System prompt with the bot's persona and tone, for the questions the model writes.
@@ -53,14 +55,12 @@ const HELP = {
 }
 
 /**
- * How each field is named in the summary's note about approximated values.
+ * How each field is named in the summary's note about values left as "No sé".
  */
-const FIELD_LABELS = {
+const UNKNOWN_LABELS = {
     children_quantity: 'la cantidad',
     children_age: 'la edad',
     work_type: 'la actividad',
-    time_period: 'la hora',
-    sighting_time: 'la hora',
 }
 
 /**
@@ -112,6 +112,7 @@ async function replyFor(action, draft, message) {
     if (action.type === 'courtesy') return courtesyMessage(action, draft)
     if (action.field === 'correction') return correctionQuestion()
     if (action.field === 'time_period' && !action.help) return timePeriodQuestion(draft.pending_time)
+    if (action.field === 'risk') return riskQuestion()
     return askModel(askInstruction(action, draft), message)
 }
 
@@ -209,7 +210,7 @@ export function courtesyMessage({ reviewing }, draft) {
  * @returns {string}
  */
 export function correctionQuestion() {
-    return '¿Qué dato quieres corregir? Por ejemplo: la cantidad, la edad, la actividad, la hora o la ubicación.'
+    return '¿Qué dato quieres corregir? Por ejemplo: la cantidad, la edad, la actividad, el riesgo, el peligro inmediato, la hora o la ubicación.'
 }
 
 /**
@@ -263,25 +264,52 @@ export function emergencyMessage() {
  * @param {boolean} [options.added_details] The person just added something to the report.
  * @returns {string}
  */
-export function summaryMessage(draft, { defaults_used = [], added_details = false } = {}) {
+export function summaryMessage(draft, { defaults_used = [], added_details = false } = {}, now = new Date()) {
     const lines = [
         added_details ? 'Gracias, agregué eso a tu reporte. Así quedó:' : 'Gracias. Este es el resumen de tu reporte:',
         '',
-        `• *Niñas o niños:* ${draft.children_quantity}`,
+        `• *Niñas o niños:* ${draft.children_quantity === MAX_CHILDREN_QUANTITY ? '5 o más' : draft.children_quantity}`,
         `• *Edad aproximada:* ${draft.children_age}`,
-        `• *Actividad:* ${draft.work_type}`,
-        `• *Hora:* ${draft.sighting_time}`,
+        `• *Actividad:* ${(draft.work_type ?? []).join(', ')}`,
+        `• *Situación de riesgo:* ${RISK_LABELS[draft.risk] ?? 'No sé'}`,
+        `• *Peligro inmediato:* ${draft.immediate_danger ? 'Sí' : 'No'}`,
+        `• *Cuándo:* ${whenLabel(draft, now)}`,
         '• *Ubicación:* recibida',
         `• *Fotos:* ${draft.photos.length || 'ninguna'}`,
     ]
 
-    const approximated = [...new Set(defaults_used.map((field) => FIELD_LABELS[field]).filter(Boolean))]
-    if (approximated.length) {
-        lines.push('', `Como no lo recordabas, aproximé ${joinWithY(approximated)}. Si sabes el dato, puedes corregirlo.`)
+    const unknown = [...new Set(defaults_used.map((field) => UNKNOWN_LABELS[field]).filter(Boolean))]
+    if (unknown.length) {
+        const verb = unknown.length > 1 ? 'quedaron' : 'quedó'
+        lines.push('', `Como no lo recordabas, ${joinWithY(unknown)} ${verb} como *No sé*. Si sabes el dato, puedes corregirlo.`)
+    }
+    if (defaults_used.some((field) => field === 'time_period' || field === 'sighting_time')) {
+        lines.push('', 'La hora es aproximada. Si la sabes, puedes corregirla.')
     }
 
     lines.push('', '¿Los datos son correctos? Responde *sí* o dime qué hay que cambiar.')
     return lines.join('\n')
+}
+
+/**
+ * Labels of the `risk` answers in the summary.
+ */
+const RISK_LABELS = { si: 'Sí', no: 'No', no_se: 'No sé' }
+
+/**
+ * Day and time of the sighting for the summary: "hoy a las 17:00", "ayer a las 17:00"
+ * or "el 16/10/2026 a las 17:00". Without a day, it is the day of the report.
+ *
+ * @param {import('./draft.js').Draft} draft
+ * @param {Date} now
+ * @returns {string}
+ */
+function whenLabel(draft, now) {
+    const today = localNow(now).date
+    const date = draft.sighting_date ?? today
+    const [year, month, day] = date.split('-')
+    const dayLabel = date === today ? 'hoy' : date === shiftDate(today, -1) ? 'ayer' : `el ${day}/${month}/${year}`
+    return `${dayLabel} a las ${draft.sighting_time}`
 }
 
 /**
@@ -298,10 +326,23 @@ export function timePeriodQuestion({ hour, minutes }) {
  * Thanks the person once the report is registered.
  * @returns {string}
  */
-export function confirmedMessage() {
+export function confirmedMessage(folio = null) {
+    const folioLine = folio ? `\n\nTu folio es *${folio}*. Guárdalo por si necesitas dar seguimiento.` : ''
     return (
         '¡Muchas gracias! Tu reporte quedó registrado y el personal de SIPINNA lo revisará. ' +
-        'Gracias por ayudar a proteger a niñas, niños y adolescentes. 💙'
+        `Gracias por ayudar a proteger a niñas, niños y adolescentes. 💙${folioLine}`
+    )
+}
+
+/**
+ * The risk question, with the same examples for everyone, like the web form.
+ * @returns {string}
+ */
+export function riskQuestion() {
+    return (
+        '¿Observaste alguna *situación de riesgo* para las niñas o niños? Por ejemplo: trabajar entre los coches, ' +
+        'en una construcción sin equipo de protección, cargar cosas muy pesadas o estar solos de noche.\n\n' +
+        'Responde *sí*, *no* o *no sé*.'
     )
 }
 

@@ -95,7 +95,7 @@ async function receivePhoto(draft, { buffer, contentType }) {
 async function sendConfirmed(chatId, draft) {
     let progress = draft
     try {
-        await sendReport({
+        const { folio } = await sendReport({
             api,
             draft,
             photos: await loadPhotos(draft.photos),
@@ -106,7 +106,7 @@ async function sendConfirmed(chatId, draft) {
         })
         await deletePhotos(draft.photos)
         await deleteDraft(chatId)
-        return confirmedMessage()
+        return confirmedMessage(folio)
     } catch (error) {
         console.error('[api] could not send the report:', error.message)
         const reply = sendFailedMessage()
