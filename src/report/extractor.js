@@ -45,7 +45,7 @@ const INSTRUCTIONS = `Lees mensajes de personas que reportan trabajo infantil y 
 Reglas:
 - Extrae SOLO lo que dice el mensaje de la persona. Lo que no menciona va en null. No inventes ni supongas.
 - cantidad: copia la palabra que usa la persona para decir CUÁNTOS niños eran ("dos niños" → "dos", "una niña" → "una", "eran 3" → "3", "unos chavitos" → "unos", "varios niños" → "varios"). Si habla de un solo niño o niña ("una niña", "un niño", "un chavito"), copia "una" o "un". Si no dice nada sobre cuántos, null.
-- edad: la edad aproximada en años, como número ("como de 8 años" → 8, "de 12" → 12). Si la describe sin número, aproxima: "muy chiquitos" o "bebés" → 3, "adolescentes" → 15. Si no habla de la edad, null. Las palabras "niño", "niña", "chavito" o "chamaco" solas NO indican edad.
+- edad: la edad aproximada en años, como número ("como de 8 años" → 8, "de 12" → 12). Si la describe sin número, aproxima: "muy chiquitos" o "bebés" → 3, "adolescentes" → 15. Si da varias edades ("uno 6 y el otro 7", "uno de 10 y otro de 5", "tenían 6 y 7 años"), usa la MENOR. Si no habla de la edad, null. Las palabras "niño", "niña", "chavito" o "chamaco" solas NO indican edad.
 - tipos_trabajo: lista con TODAS las actividades que describe, cada una convertida a una categoría (pueden ser varias):
   "limpiaban vidrios o parabrisas" → "Limpieza de parabrisas"
   "vendían chicles, dulces, flores en la calle" → "Venta ambulante"
